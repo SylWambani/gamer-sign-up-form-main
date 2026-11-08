@@ -4,15 +4,15 @@ import InputCard from "./InputCard";
 
 const SignUpForm = () => {
   return (
-    <Box>
-      <Box>
+    <Box width="100%">
+      <Box pb="8">
         <Image src="./src/assets/images/logo.svg" alt="Logo" />
       </Box>
       <Box>
         <Title />
-        <Separator size="sm" />
+        <Separator size="sm" pb="3" />
       </Box>
-      <Stack direction="row" justify="space-between">
+      <Stack direction="row" justify="space-between" pb="5">
         <Text>OPERATOR ID</Text>
         <Text>UNASSIGNED</Text>
       </Stack>
