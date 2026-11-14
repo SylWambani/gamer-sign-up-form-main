@@ -1,5 +1,4 @@
 import { Stack, Heading} from '@chakra-ui/react'
-import React from 'react'
 
 const Title = () => {
   return (

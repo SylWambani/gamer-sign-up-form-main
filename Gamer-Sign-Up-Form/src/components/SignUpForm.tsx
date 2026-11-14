@@ -1,8 +1,12 @@
 import { Box, Image, Separator, Text, Stack } from "@chakra-ui/react"
 import Title from "./Title"
 import InputCard from "./InputCard";
+import { useState } from "react";
+import SuccessCard from "./SuccessCard";
 
 const SignUpForm = () => {
+  const [callsign, setCallsign] = useState<string | null>(null);
+  
   return (
     <Box width="100%">
       <Box pb="8">
@@ -14,9 +18,14 @@ const SignUpForm = () => {
       </Box>
       <Stack direction="row" justify="space-between" pb="5">
         <Text>OPERATOR ID</Text>
-        <Text>UNASSIGNED</Text>
+        <Text>{callsign || "UNASSIGNED"}</Text>
       </Stack>
-      <InputCard/>
+
+      {callsign ? (
+        <SuccessCard callsign={callsign} />
+      ) : (
+        <InputCard onSuccess={setCallsign} />
+      )}
     </Box>
   );
 }
