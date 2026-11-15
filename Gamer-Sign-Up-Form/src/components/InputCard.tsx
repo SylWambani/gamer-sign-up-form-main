@@ -11,6 +11,8 @@ import {
 import { type Options, passwordStrength } from "check-password-strength";
 import { PasswordInput, PasswordStrengthMeter } from "./ui/password-input";
 import { useMemo, useState } from "react";
+import FieldTick from "./FieldTick";
+import FieldError from "./FieldError";
 
 type InputCardProps = {
   onSuccess: (callsign: string) => void;
@@ -29,6 +31,16 @@ const InputCard = ({ onSuccess }: InputCardProps) => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [touched, setTouched] = useState({
+    callsign: false,
+    email: false,
+    password: false,
+    confirm: false,
+  });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const touch = (field: keyof typeof touched) =>
+    setTouched((t) => ({ ...t, [field]: true }));
 
   const strength = useMemo(() => {
     if (!password) return 0;
@@ -38,11 +50,31 @@ const InputCard = ({ onSuccess }: InputCardProps) => {
 
   const mismatch = confirm !== "" && confirm !== password;
   const callsignValid = /^[A-Za-z0-9_-]{3,20}$/.test(callsign);
-  const callsignInvalid = callsign !== "" && !callsignValid;
+  const emailValid = /^\S+@\S+\.\S+$/.test(email);
+  const passwordValid = password.length >= 8;
+  const confirmValid = confirm !== "" && !mismatch;
+  const callsignInvalid = touched.callsign && !callsignValid;
+  const emailInvalid = touched.email && !emailValid;
+  const passwordInvalid = touched.password && !passwordValid;
+  const confirmInvalid = mismatch || (touched.confirm && confirm === "");
+  const termsInvalid = submitAttempted && !accepted;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!callsignValid || !password || password !== confirm) return;
+    const allValid =
+      callsignValid && emailValid && passwordValid && confirmValid && accepted;
+
+    if (!allValid) {
+      setSubmitAttempted(true);
+      setTouched({
+        callsign: true,
+        email: true,
+        password: true,
+        confirm: true,
+      });
+      return;
+    }
+
     onSuccess(callsign.trim());
   };
 
@@ -57,68 +89,95 @@ const InputCard = ({ onSuccess }: InputCardProps) => {
         <Card.Body>
           <Field.Root invalid={callsignInvalid}>
             <Field.Label>CALLSIGN</Field.Label>
-            <Input
-              placeholder="e.g. Vortex_07"
-              value={callsign}
-              onChange={(e) => setCallsign(e.currentTarget.value)}
-            />
-            <Field.HelperText>
-              3–20 characters: letters, numbers, _ or -
-            </Field.HelperText>
+            <FieldTick show={callsignValid}>
+              <Input
+                placeholder="e.g. Vortex_07"
+                value={callsign}
+                onChange={(e) => setCallsign(e.currentTarget.value)}
+                onBlur={() => touch("callsign")}
+              />
+            </FieldTick>
+            {!callsignInvalid && (
+              <Field.HelperText>
+                3–20 characters: letters, numbers, _ or -
+              </Field.HelperText>
+            )}
+            <FieldError>Use 3–20 letters, numbers, _ or - only</FieldError>
           </Field.Root>
-          <Field.Root>
+          <Field.Root invalid={emailInvalid}>
             <Field.Label>EMAIL</Field.Label>
-            <Input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.currentTarget.value)}
-            />
+            <FieldTick show={emailValid}>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+                onBlur={() => touch("email")}
+              />
+            </FieldTick>
+            <FieldError>Enter a valid email, like you@example.com</FieldError>
           </Field.Root>
-          <Field.Root>
+          <Field.Root invalid={passwordInvalid}>
             <Field.Label>PASSWORD</Field.Label>
-            <PasswordInput
-              value={password}
-              onChange={(e) => setPassword(e.currentTarget.value)}
-            />
+            <FieldTick show={passwordValid} right="10">
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+                onBlur={() => touch("password")}
+              />
+            </FieldTick>
             <PasswordStrengthMeter value={strength} width="100%" />
-            <Field.HelperText>At least 8 characters</Field.HelperText>
+            {!passwordInvalid && (
+              <Field.HelperText>At least 8 characters</Field.HelperText>
+            )}
+            <FieldError>Password must be at least 8 characters</FieldError>
           </Field.Root>
-          <Field.Root invalid={mismatch}>
+          <Field.Root invalid={confirmInvalid}>
             <Field.Label>CONFIRM PASSWORD</Field.Label>
-            <PasswordInput
-              value={confirm}
-              onChange={(e) => setConfirm(e.currentTarget.value)}
-            />
+            <FieldTick show={confirmValid} right="10">
+              <PasswordInput
+                value={confirm}
+                onChange={(e) => setConfirm(e.currentTarget.value)}
+                onBlur={() => touch("confirm")}
+              />
+            </FieldTick>
 
-            <Field.ErrorText>Passwords do not match</Field.ErrorText>
+            <FieldError>
+              {confirm === ""
+                ? "Re-enter your password"
+                : "Passwords do not match"}
+            </FieldError>
           </Field.Root>
         </Card.Body>
         <Card.Footer>
-          <Checkbox.Root
-            checked={accepted}
-            onCheckedChange={(e) => setAccepted(!!e.checked)}
-          >
-            <Checkbox.HiddenInput />
-            <Checkbox.Control />
-            <Checkbox.Label>
-              I accept the{" "}
-              <Link variant="underline" href="#">
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link variant="underline" href="#">
-                Privacy Policy
-              </Link>
-            </Checkbox.Label>
-          </Checkbox.Root>
+          <Field.Root invalid={termsInvalid}>
+            <Checkbox.Root
+              checked={accepted}
+              onCheckedChange={(e) => setAccepted(!!e.checked)}
+              
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control />
+              <Checkbox.Label>
+                I accept the{" "}
+                <Link variant="underline" href="#">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link variant="underline" href="#">
+                  Privacy Policy
+                </Link>
+              </Checkbox.Label>
+            </Checkbox.Root>
+
+            <FieldError>
+              Accept the Terms and Privacy Policy to continue
+            </FieldError>
+          </Field.Root>
           <Button
             type="submit"
             variant="solid"
             size="lg"
-            disabled={
-              !callsignValid || !password || !confirm || mismatch || !accepted
-            }
           >
             INITIALIZE ACCOUNT
           </Button>
